@@ -1,0 +1,7 @@
+DB_HOST=localhost
+DB_PORT=5432
+DB_USER=postgres
+DB_PASS=1234
+DB_NAME=barbearia_db
+JWT_SECRET=segredoJWT
+PORT=3000
