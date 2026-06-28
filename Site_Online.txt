@@ -1,0 +1,5 @@
+Backend:https://porjeto-final-web.onrender.com/
+
+Swagger/API documentada: https://porjeto-final-web.onrender.com/api
+
+Frontend: https://porjetofinalweb.vercel.app/
