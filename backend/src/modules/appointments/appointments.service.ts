@@ -57,36 +57,35 @@ export class AppointmentsService {
   }
 
   async findAll(
-  loggedUser: any,
-  page = 1,
-  limit = 10,
-  status?: string,
-  barbershopId?: number,
-  userId?: number,
-  serviceId?: number 
-) {
-  const normalizedPage = Math.max(Number(page) || 1, 1);
-  const normalizedLimit = Math.min(Math.max(Number(limit) || 10, 1), 100);
+    loggedUser: any,
+    page = 1,
+    limit = 10,
+    status?: string,
+    barbershopId?: number,
+    userId?: number,
+    serviceId?: number
+  ) {
+    const normalizedPage = Math.max(Number(page) || 1, 1);
+    const normalizedLimit = Math.min(Math.max(Number(limit) || 10, 1), 100);
 
-  const where: any = {};
+    const where: any = {};
 
-  
-  if (status) {
-    where.status = status;
-  }
 
- 
-  if (loggedUser?.role === UserRole.CLIENTE) {
-    where.userId = loggedUser.userId;
-
-  } else if (loggedUser?.role === UserRole.BARBEIRO) {
-    if (!loggedUser.barbershopId) {
-      throw new ForbiddenException('Funcionário não pertence a uma barbearia');
+    if (status) {
+      where.status = status;
     }
 
-    where.barbershopId = loggedUser.barbershopId;
+    if (loggedUser?.role === UserRole.CLIENTE) {
+      where.userId = loggedUser.userId;
 
-  } else {
+    } else if (loggedUser?.role === UserRole.BARBEIRO) {
+      if (!loggedUser.barbershopId) {
+        throw new ForbiddenException('Funcionário não pertence a uma barbearia');
+      }
+
+      where.barbershopId = loggedUser.barbershopId;
+    }
+
  
     if (barbershopId) {
       where.barbershopId = Number(barbershopId);
@@ -95,78 +94,140 @@ export class AppointmentsService {
     if (userId) {
       where.userId = Number(userId);
     }
-  }
 
- 
-  if (serviceId) {
-    where.serviceId = Number(serviceId);
-  }
+    if (serviceId) {
+      where.serviceId = Number(serviceId);
+    }
 
-  const { rows, count } =
-    await this.appointmentsRepository.findAndCountAll({
-      where,
+    const { rows, count } =
+      await this.appointmentsRepository.findAndCountAll({
+        where,
+        limit: normalizedLimit,
+        offset: (normalizedPage - 1) * normalizedLimit,
+        order: [['date', 'ASC']],
+        include: [
+          {
+            association: 'barbershop',
+            attributes: ['id', 'name', 'city'],
+          },
+          {
+            association: 'service',
+            attributes: ['id', 'name', 'price'],
+          },
+          {
+            association: 'user',
+            attributes: ['id', 'name', 'email'],
+          },
+          {
+            association: 'barber',
+            attributes: ['id', 'name'],
+          },
+        ],
+      });
+
+    return {
+      data: rows,
+      total: count,
+      page: normalizedPage,
       limit: normalizedLimit,
-      offset: (normalizedPage - 1) * normalizedLimit,
-      order: [['date', 'ASC']],
-      include: [
-        {
-          association: 'barbershop',
-          attributes: ['id', 'name', 'city'],
-        },
-        {
-          association: 'service',
-          attributes: ['id', 'name', 'price'],
-        },
-        {
-          association: 'user',
-          attributes: ['id', 'name', 'email'],
-        },
-        {
-          association: 'barber',
-          attributes: ['id', 'name'],
-        },
-      ],
-    });
+      lastPage: Math.ceil(count / normalizedLimit),
+    };
+  }
 
-  return {
-    data: rows,
-    total: count,
-    page: normalizedPage,
-    limit: normalizedLimit,
-    lastPage: Math.ceil(count / normalizedLimit),
-  };
-}
 
   async cancel(id: number, loggedUser: any) {
-    const appointment = await this.appointmentsRepository.findById(id);
-    if (!appointment) throw new NotFoundException('Agendamento não encontrado');
-    if (appointment.status === AppointmentStatus.CANCELADO) throw new BadRequestException('Agendamento já cancelado');
+  const appointment = await this.appointmentsRepository.findById(id);
 
-    if (loggedUser.role !== UserRole.ADMIN && loggedUser.userId !== appointment.userId) {
+  if (!appointment) {
+    throw new NotFoundException('Agendamento não encontrado');
+  }
+
+  if (appointment.status === AppointmentStatus.CANCELADO) {
+    throw new BadRequestException('Agendamento já cancelado');
+  }
+
+  const loggedUserId = Number(loggedUser?.userId ?? loggedUser?.id);
+
+  if (loggedUser.role === UserRole.CLIENTE) {
+    if (appointment.userId !== loggedUserId) {
       throw new ForbiddenException('Você só pode cancelar seu próprio agendamento');
     }
+  }
 
-    const barbershop = await this.barbershopsRepository.findById(appointment.barbershopId);
-    if (!barbershop) throw new NotFoundException('Barbearia não encontrada');
+  if (loggedUser.role === UserRole.BARBEIRO) {
+    const sameBarbershop =
+      loggedUser.barbershopId &&
+      Number(loggedUser.barbershopId) === Number(appointment.barbershopId);
 
-    const limitMs = barbershop.cancellationLimitHours * 60 * 60 * 1000;
-    if (appointment.date.getTime() - Date.now() < limitMs) {
-      throw new BadRequestException(`Cancelamento permitido somente até ${barbershop.cancellationLimitHours} horas antes`);
+    const sameBarber =
+      appointment.barberId &&
+      Number(appointment.barberId) === loggedUserId;
+
+    if (!sameBarbershop && !sameBarber) {
+      throw new ForbiddenException(
+        'Você só pode cancelar agendamentos da sua barbearia ou vinculados a você',
+      );
+    }
+  }
+
+  const barbershop = await this.barbershopsRepository.findById(
+    appointment.barbershopId,
+  );
+
+  if (!barbershop) {
+    throw new NotFoundException('Barbearia não encontrada');
+  }
+
+  const limitMs = barbershop.cancellationLimitHours * 60 * 60 * 1000;
+  const appointmentDate = new Date(appointment.date);
+
+  if (appointmentDate.getTime() - Date.now() < limitMs) {
+    throw new BadRequestException(
+      `Cancelamento permitido somente até ${barbershop.cancellationLimitHours} horas antes`,
+    );
+  }
+
+  await appointment.update({
+    status: AppointmentStatus.CANCELADO,
+  });
+
+  return appointment;
+}
+
+async updateStatus(id: number, status: AppointmentStatus, loggedUser: any) {
+  const appointment = await this.appointmentsRepository.findById(id);
+  if (!appointment) {
+    throw new NotFoundException('Agendamento não encontrado');
+  }
+
+
+  if (loggedUser.role === UserRole.CLIENTE) {
+
+    
+    if (
+      status !== 'CONFIRMADO' &&
+      status !== 'CANCELADO'
+    ) {
+      throw new ForbiddenException('Cliente não pode definir esse status');
     }
 
-    await appointment.update({ status: AppointmentStatus.CANCELADO });
-    return appointment;
+
+    if (appointment.userId !== loggedUser.userId) {
+      throw new ForbiddenException('Acesso negado ao agendamento');
+    }
+
+
+    if (appointment.status !== 'PENDENTE') {
+      throw new ForbiddenException('Só é possível alterar agendamentos pendentes');
+    }
   }
 
-  async updateStatus(id: number, status: AppointmentStatus, loggedUser: any) {
-    if (loggedUser.role === UserRole.CLIENTE) throw new ForbiddenException('Cliente não pode alterar status do atendimento');
 
-    const appointment = await this.appointmentsRepository.findById(id);
-    if (!appointment) throw new NotFoundException('Agendamento não encontrado');
 
-    await appointment.update({ status });
-    return appointment;
-  }
+  await appointment.update({ status });
+
+  return appointment;
+}
 
   private async ensureNoOverlap(input: { userId: number; barbershopId: number; barberId?: number; startDate: Date; endDate: Date }) {
     const intervalWhere = {

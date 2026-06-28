@@ -1,5 +1,16 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Put, Query, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Put,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
+import { ApiBearerAuth, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -7,6 +18,7 @@ import { UserRole } from '../../database/models/user.model';
 import { CreateProfessionalDto } from './dto/create-professionals.dto';
 import { UpdateProfessionalDto } from './dto/update-professionals.dto';
 import { ProfessionalService } from './professionals.service';
+import { FilterProfessionalsDto } from './dto/filter-professionals.dto';
 
 @ApiTags('Professional')
 @ApiBearerAuth()
@@ -18,30 +30,50 @@ export class ProfessionalController {
   @Post()
   @Roles(UserRole.ADMIN, UserRole.BARBEIRO)
   @ApiOperation({ summary: 'Criar Profissional' })
-  create(@Body() dto: CreateProfessionalDto) { return this.service.create(dto); }
+  create(@Body() dto: CreateProfessionalDto) {
+    return this.service.create(dto);
+  }
 
   @Get()
   @Roles(UserRole.ADMIN, UserRole.BARBEIRO, UserRole.CLIENTE)
   @ApiOperation({ summary: 'Listar Profissional com filtros e paginação' })
-  findAll(@Query() query: any) { return this.service.findAll(query); }
+  @ApiQuery({ name: 'page', required: false })
+  @ApiQuery({ name: 'limit', required: false })
+  @ApiQuery({ name: 'name', required: false })
+  @ApiQuery({ name: 'email', required: false })
+  @ApiQuery({ name: 'phone', required: false })
+  @ApiQuery({ name: 'specialty', required: false })
+  @ApiQuery({ name: 'barbershopId', required: false })
+  @ApiQuery({ name: 'isActive', required: false })
+  findAll(@Query() query: FilterProfessionalsDto) {
+    return this.service.findAll(query);
+  }
 
   @Get(':id')
   @Roles(UserRole.ADMIN, UserRole.BARBEIRO, UserRole.CLIENTE)
   @ApiOperation({ summary: 'Buscar Profissional por ID' })
-  findOne(@Param('id') id: string) { return this.service.findOne(Number(id)); }
+  findOne(@Param('id') id: string) {
+    return this.service.findOne(Number(id));
+  }
 
   @Put(':id')
   @Roles(UserRole.ADMIN, UserRole.BARBEIRO)
   @ApiOperation({ summary: 'Atualizar completamente Profissional' })
-  replace(@Param('id') id: string, @Body() dto: CreateProfessionalDto) { return this.service.replace(Number(id), dto); }
+  replace(@Param('id') id: string, @Body() dto: CreateProfessionalDto) {
+    return this.service.replace(Number(id), dto);
+  }
 
   @Patch(':id')
   @Roles(UserRole.ADMIN, UserRole.BARBEIRO)
   @ApiOperation({ summary: 'Atualizar parcialmente Profissional' })
-  update(@Param('id') id: string, @Body() dto: UpdateProfessionalDto) { return this.service.update(Number(id), dto); }
+  update(@Param('id') id: string, @Body() dto: UpdateProfessionalDto) {
+    return this.service.update(Number(id), dto);
+  }
 
   @Delete(':id')
   @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Remover Profissional' })
-  remove(@Param('id') id: string) { return this.service.remove(Number(id)); }
+  remove(@Param('id') id: string) {
+    return this.service.remove(Number(id));
+  }
 }

@@ -14,15 +14,9 @@ import {
 import { Barbershop } from './barbershop.model';
 import { Appointment } from './appointment.model';
 
-export enum ServiceType {
-  CORTE_MAQUINA = 'CORTE_MAQUINA',
-  CORTE_TESOURA = 'CORTE_TESOURA',
-  BARBA = 'BARBA',
-}
-
 export interface ServiceAttributes {
   id?: number;
-  name: ServiceType;
+  name: string;
   price: number;
   duration: number;
   barbershopId: number;
@@ -38,8 +32,8 @@ export class Service extends Model<ServiceAttributes, ServiceCreationAttributes>
   @Column(DataType.INTEGER)
   declare id: number;
 
-  @Column({ type: DataType.ENUM(...Object.values(ServiceType)), allowNull: false })
-  declare name: ServiceType;
+  @Column({ type: DataType.STRING, allowNull: false })
+  declare name: string;
 
   @Column({ type: DataType.DECIMAL(10, 2), allowNull: false })
   declare price: number;

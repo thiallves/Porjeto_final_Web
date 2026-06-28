@@ -7,7 +7,13 @@ import {
   AutoIncrement,
   CreatedAt,
   UpdatedAt,
+  BelongsTo,
+  ForeignKey
 } from 'sequelize-typescript';
+
+import { Professional } from './professional.model';
+import { Barbershop } from './barbershop.model';
+
 
 @Table({ tableName: 'work_schedules', timestamps: true })
 export class WorkSchedule extends Model<WorkSchedule> {
@@ -16,24 +22,31 @@ export class WorkSchedule extends Model<WorkSchedule> {
   @Column(DataType.INTEGER)
   declare id: number;
 
+  @ForeignKey(() => Professional)
   @Column({ type: DataType.INTEGER, allowNull: true })
-  declare professionalId: any;
+  declare professionalId: number;
+
+  @ForeignKey(() => Barbershop)
+  @Column({ type: DataType.INTEGER, allowNull: true })
+  declare barbershopId: number;
 
   @Column({ type: DataType.INTEGER, allowNull: true })
-  declare barbershopId: any;
-
-  @Column({ type: DataType.INTEGER, allowNull: true })
-  declare dayOfWeek: any;
+  declare dayOfWeek: number;
 
   @Column({ type: DataType.TIME, allowNull: true })
-  declare startTime: any;
+  declare startTime: string;
 
   @Column({ type: DataType.TIME, allowNull: true })
-  declare endTime: any;
+  declare endTime: string;
 
   @Column({ type: DataType.BOOLEAN, allowNull: true, defaultValue: true })
-  declare isActive: any;
+  declare isActive: boolean;
 
+  @BelongsTo(() => Professional)
+  professional: Professional;
+
+  @BelongsTo(() => Barbershop)
+  barbershop: Barbershop;
 
   @CreatedAt
   declare createdAt: Date;

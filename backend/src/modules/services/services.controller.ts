@@ -1,17 +1,27 @@
-import { Controller, Get, Param, Post, Body, Patch, Delete, UseGuards, Req, Query } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Param,
+  Post,
+  Body,
+  Patch,
+  Delete,
+  UseGuards,
+  Req,
+  Query,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { ServicesService } from './services.service';
 import { CreateServiceDto } from './dto/create-service.dto';
 import { UpdateServiceDto } from './dto/update-service.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { ServiceType } from '../../database/models/service.model';
 
 @ApiTags('Services')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
 @Controller('services')
 export class ServicesController {
-  constructor(private readonly service: ServicesService) { }
+  constructor(private readonly service: ServicesService) {}
 
   @Post()
   @ApiOperation({ summary: 'Criar serviço para a barbearia do usuário autenticado' })
@@ -23,16 +33,21 @@ export class ServicesController {
   @ApiOperation({ summary: 'Listar serviços com paginação e filtros' })
   @ApiQuery({ name: 'page', required: false })
   @ApiQuery({ name: 'limit', required: false })
-  @ApiQuery({ name: 'name', required: false, enum: ServiceType })
+  @ApiQuery({
+    name: 'name',
+    required: false,
+    type: String,
+    example: 'Corte navalhado',
+  })
   @ApiQuery({ name: 'isActive', required: false })
   @ApiQuery({ name: 'barbershopId', required: false })
   findAll(
     @Req() req: any,
     @Query('page') page?: number,
     @Query('limit') limit?: number,
-    @Query('name') name?: ServiceType,
+    @Query('name') name?: string,
     @Query('isActive') isActive?: string,
-    @Query('barbershopId') barbershopId?: string
+    @Query('barbershopId') barbershopId?: string,
   ) {
     const activeFilter =
       isActive === undefined ? undefined : isActive === 'true';
@@ -46,7 +61,7 @@ export class ServicesController {
       Number(limit) || 10,
       name,
       activeFilter,
-      parsedBarbershopId
+      parsedBarbershopId,
     );
   }
 

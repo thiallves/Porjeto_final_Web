@@ -1,29 +1,50 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsEnum, IsNumber, IsOptional, IsPositive } from 'class-validator';
-import { ServiceType } from '../../../database/models/service.model';
+import {
+  IsBoolean,
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+  IsPositive,
+  IsString,
+} from 'class-validator';
 
 export class CreateServiceDto {
-  @ApiProperty({ enum: ServiceType, example: ServiceType.CORTE_MAQUINA })
-  @IsEnum(ServiceType)
-  name: ServiceType;
+  @ApiProperty({
+    example: 'Corte navalhado',
+    description: 'Nome do serviço cadastrado pela barbearia',
+  })
+  @IsString()
+  @IsNotEmpty()
+  name!: string;
 
   @ApiProperty({ example: 25.0 })
   @Type(() => Number)
   @IsNumber()
   @IsPositive()
-  price: number;
+  price!: number;
 
   @ApiProperty({ example: 30, description: 'Duração em minutos' })
   @Type(() => Number)
   @IsNumber()
   @IsPositive()
-  duration: number;
+  duration!: number;
 
-  @ApiProperty({ example: 1, required: false, description: 'Obrigatório apenas para ADMIN sem barbearia vinculada' })
+  @ApiPropertyOptional({
+    example: 1,
+    description: 'Obrigatório apenas para ADMIN sem barbearia vinculada',
+  })
   @IsOptional()
   @Type(() => Number)
   @IsNumber()
   @IsPositive()
   barbershopId?: number;
+
+  @ApiPropertyOptional({
+    example: true,
+    description: 'Indica se o serviço está ativo',
+  })
+  @IsOptional()
+  @IsBoolean()
+  isActive?: boolean;
 }
