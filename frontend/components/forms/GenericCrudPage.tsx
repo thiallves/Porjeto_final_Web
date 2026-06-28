@@ -33,6 +33,14 @@ type Config = {
   title: string;
   description: string;
   searchPlaceholder: string;
+  filters?: {
+    name: string;
+    placeholder?: string;
+    lookup?: {
+      endpoint: string;
+      labelKey?: string;
+    };
+  }[];
   fields: Field[];
   columns: {
     key: string;
@@ -81,13 +89,23 @@ function normalizePayloadValue(key: string, value: any) {
 
 export function GenericCrudPage({ config, user }: Props) {
 
-  const [filters, setFilters] = useState({
+  const handleFilterChange = (key: string, value: any) => {
+    setFilters(prev => ({
+      ...prev,
+      [key]: value
+    }));
+  };
+
+
+  {/*const [filters, setFilters] = useState({
     name: '',
     email: '',
     specialty: '',
     barbershopId: '',
     isActive: '',
-  });
+  });*/}
+
+  const [filters, setFilters] = useState<Record<string, any>>({});
 
   const [rows, setRows] = useState<any[]>([]);
   const [pagination, setPagination] = useState<Paginated<any> | null>(null);
@@ -132,33 +150,26 @@ export function GenericCrudPage({ config, user }: Props) {
 
   async function load() {
     setLoading(true);
+
     try {
       let params: any = {
         page,
         limit: 10,
       };
 
-      if (config.endpoint.includes('professionals')) {
-        params = {
-          ...params,
-          name: filters.name || undefined,
-          email: filters.email || undefined,
-          specialty: filters.specialty || undefined,
-          barbershopId: filters.barbershopId || undefined,
-          isActive: filters.isActive !== '' ? filters.isActive : undefined,
-        };
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value !== '' && value !== null && value !== undefined) {
+          params[key] = value;
+        }
+      });
 
-      } else if (config.endpoint.includes('coupons')) {
-        params.code = search || undefined;
-
-      } else {
-        params.name = search || undefined;
-      }
+      console.log('PARAMS ENVIADOS:', params);
 
       const data = await listGeneric<any>(config.endpoint, params);
 
       setRows(data.data || []);
       setPagination(data);
+
     } finally {
       setLoading(false);
     }
@@ -315,60 +326,66 @@ export function GenericCrudPage({ config, user }: Props) {
       columns={columns}
       loading={loading}
       searchValue={search}
-      searchPlaceholder={config.searchPlaceholder}
-      onSearch={(value) => { setSearch(value); setPage(1); }}
+      /*searchPlaceholder={config.searchPlaceholder}
+      onSearch={(value) => { setSearch(value); setPage(1); }}*/
       page={page}
       total={pagination?.total || 0}
       lastPage={pagination?.lastPage || 1}
       onPageChange={setPage}
-      actions={!config.disableCreate && user.role === 'CLIENTE' && <AppButton onClick={openCreate}><Plus size={18} /> Novo</AppButton>}
-
-      filters={
-        <>
-          <input
-            placeholder="Nome"
-            value={filters.name}
-            onChange={(e) => setFilters({ ...filters, name: e.target.value })}
-          />
-
-          <input
-            placeholder="E-mail"
-            value={filters.email}
-            onChange={(e) => setFilters({ ...filters, email: e.target.value })}
-          />
-
-          <input
-            placeholder="Especialidade"
-            value={filters.specialty}
-            onChange={(e) => setFilters({ ...filters, specialty: e.target.value })}
-          />
-
-          <select
-            value={filters.barbershopId}
-            onChange={(e) =>
-              setFilters({ ...filters, barbershopId: e.target.value })
-            }
-          >
-            <option value="">Todas barbearias</option>
-            {(lookups[keyFor('/barbershops', 'barbershopId')] || []).map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
-
-          <select
-            value={filters.isActive}
-            onChange={(e) =>
-              setFilters({ ...filters, isActive: e.target.value })
-            }
-          >
-            <option value="">Todos</option>
-            <option value="true">Ativo</option>
-            <option value="false">Inativo</option>
-          </select>
-        </>
+      actions={
+        !config.disableCreate && (
+          <AppButton onClick={openCreate}>
+            <Plus size={18} /> Novo
+          </AppButton>
+        )
       }
+
+
+    filters={
+      <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+
+        {config.filters?.map((filter) => {
+
+          if (!filter.lookup) {
+            return (
+              <input
+                key={filter.name}
+                className="filter-input"
+                placeholder={filter.placeholder}
+                value={(filters as any)[filter.name] || ''}
+                onChange={(e) =>
+                  handleFilterChange(filter.name, e.target.value)
+                }
+              />
+            );
+          }
+
+
+          const options =
+            lookups[keyFor(filter.lookup.endpoint, filter.name)] || [];
+
+          return (
+            <select
+              key={filter.name}
+              className="filter-input"
+              value={(filters as any)[filter.name] || ''}
+              onChange={(e) =>
+                handleFilterChange(filter.name, e.target.value)
+              }
+            >
+              <option value="">{filter.placeholder}</option>
+
+              {options.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          );
+        })}
+
+      </div>
+    }
 
     />
 

@@ -91,7 +91,7 @@ function AppointmentsContent({ user }: { user: User }) {
     }
   }
 
-  useEffect(() => { load(1); }, [status, barbershopId]);
+  useEffect(() => { load(1); }, [status, barbershopId, serviceId, userId]);
 
   async function setNewStatus(id: number, next: AppointmentStatus) { await updateAppointmentStatus(id, next); load(items.page); }
   async function cancel(id: number) { await cancelAppointment(id); load(items.page); }
@@ -126,26 +126,49 @@ function AppointmentsContent({ user }: { user: User }) {
       render: r => <StatusBadge value={r.status} />,
     },
 
-    {
-      header: 'Ações',
-      render: r => (
-        <div className="row-actions">
-          {canChangeStatus && (
-            <>
-              <button title="Confirmar" onClick={() => setNewStatus(r.id, 'CONFIRMADO')}>
-                <CheckCircle size={16} />
-              </button>
-              <button title="Concluir" onClick={() => setNewStatus(r.id, 'CONCLUIDO')}>
-                <CalendarPlus size={16} />
-              </button>
-            </>
-          )}
-          <button title="Cancelar" onClick={() => cancel(r.id)}>
-            <XCircle size={16} />
+{
+  header: 'Ações',
+  render: r => (
+    <div className="row-actions">
+
+      {user.role === 'CLIENTE' && r.status === 'PENDENTE' && (
+        <button
+          title="Confirmar"
+          onClick={() => setNewStatus(r.id, 'CONFIRMADO')}
+        >
+          <CheckCircle size={16} />
+        </button>
+      )}
+
+      {canChangeStatus && (
+        <>
+          <button
+            title="Confirmar"
+            onClick={() => setNewStatus(r.id, 'CONFIRMADO')}
+          >
+            <CheckCircle size={16} />
           </button>
-        </div>
-      ),
-    },
+
+          <button
+            title="Concluir"
+            onClick={() => setNewStatus(r.id, 'CONCLUIDO')}
+          >
+            <CalendarPlus size={16} />
+          </button>
+        </>
+      )}
+
+
+      <button
+        title="Cancelar"
+        onClick={() => cancel(r.id)}
+      >
+        <XCircle size={16} />
+      </button>
+
+    </div>
+  ),
+}
   ];
 
   return <>

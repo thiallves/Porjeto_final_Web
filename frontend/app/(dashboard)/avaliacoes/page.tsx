@@ -29,5 +29,18 @@ const config = {
 } as const;
 
 export default function Page() {
-  return <ProtectedPage href="/avaliacoes">{user => <GenericCrudPage config={config as any} user={user} />}</ProtectedPage>;
+  return (
+    <ProtectedPage href="/avaliacoes">
+      {user => (
+        <GenericCrudPage
+          config={{
+            ...config,
+            disableCreate: user.role !== 'CLIENTE',
+          } as any}
+          user={user}
+        />
+      )}
+    </ProtectedPage>
+  );
 }
+``

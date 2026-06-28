@@ -1,5 +1,5 @@
 export type UserRole = 'ADMIN' | 'CLIENTE' | 'BARBEIRO';
-export type ServiceType = 'CORTE_MAQUINA' | 'CORTE_TESOURA' | 'BARBA';
+export type ServiceType = string;
 export type AppointmentStatus = 'PENDENTE' | 'CONFIRMADO' | 'CONCLUIDO' | 'CANCELADO';
 
 export type Paginated<T> = {
